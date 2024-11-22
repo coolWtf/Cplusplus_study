@@ -547,5 +547,145 @@ int main() {
 
 
 #### 多态
+多态分为编译时多态，以及运行时多态。
+##### 编译时多态
+是指在编译期间就确定了函数或操作符的调用方式。
+主要包括：
 
+- 函数重载
+
+```cpp
+//C++_study/OOP/Polymorphism/Com-time.cpp
+#include <iostream>
+void print(int x) {
+    std::cout << "Integer: " << x << std::endl;
+}
+void print(double x) {
+    std::cout << "Double: " << x << std::endl;
+}
+int main() {
+    print(10);    // 调用 print(int)
+    print(3.14);  // 调用 print(double)
+    return 0;
+}
+```
+
+- 运算符重载
+
+```cpp
+//C++_study/OOP/Polymorphism/Com-time.cpp
+#include <iostream>
+class Complex {
+public:
+    double real, imag;
+    Complex(double r, double i) : real(r), imag(i) {}
+    Complex operator+(const Complex &c) {
+        return Complex(real + c.real, imag + c.imag);
+    }
+};
+int main() {
+    Complex c1(1.0, 2.0), c2(2.5, 3.5);
+    Complex c3 = c1 + c2;  // 调用重载的 +
+    std::cout << "Real: " << c3.real << ", Imag: " << c3.imag << std::endl;  //Real:3.5,Imag: 5.5
+    return 0;
+}
+```
+
+- 模板
+***
+等之后写道模板类的时候再补充
+***
+
+其主要特点为**静态绑定**，及调用函数或操作在编译时就已经确定了。此外**执行效率高**，由于函数地址或调用方式在编译阶段就确定，运行时不需要额外开销。主要适用于操作相对固定、无需动态行为的场景。
+
+##### 运行时多态
+是指在运行期间根据对象的类型动态决定调用哪个函数。主要通过虚函数和继承实现。
+
+实现机制：
+
+- **虚函数表**： 每个包含虚函数的类都会有一个虚函数表，记录了类中所有虚函数的地址。每个对象通过虚指针（vptr）访问该表。
+- **动态绑定**：函数调用在运行时根据对象的实际类型，通过虚指针找到对应的函数实现。
+- **基类指针**：必须通过基类的指针或者引用调用虚函数。
+
+示例代码：
+
+```cpp
+//C++_study/OOP/Polymorphism/Run-time.cpp
+#include <iostream>
+#include <vector>
+using namespace std;
+class Animal {
+public:
+    virtual void sound() {
+        std::cout << "Animal makes a sound." << std::endl;
+    }
+};
+
+class Dog : public Animal {
+public:
+    void sound() override {
+        std::cout << "Dog barks." << std::endl;
+    }
+};
+
+class Cat : public Animal {
+public:
+    void sound() override {
+        std::cout << "Cat meows." << std::endl;
+    }
+};
+void Fun_sound(Animal & animal){
+    animal.sound();
+}
+int main() {
+    Animal *a1 = new Dog();
+    Animal *a2 = new Cat();
+    Dog a3;
+
+    a1->sound();  // 基类指针的方式 调用 Dog 的 sound
+    a2->sound();  // 基类指针的方式 调用 Cat 的 sound
+
+    Fun_sound(*a1);// 对象引用的方式 调用 Dog 的 sound
+    Fun_sound(*a2);// 对象引用的方式 调用 Cat 的 sound
+
+    (*a1).sound(); //
+    a3.sound(); //这种是静态绑定，在编译阶段就确定了调用的是谁的方法
+    //使用动态绑定可以可以根据实际类型调用方法，动态绑定让 zoo 容器可以同时管理 Dog 和 Cat 的实例，而不需要写两套代码。
+    //新增其他动物类型（例如 Bird），只需继承 Animal 并实现 sound 方法即可，无需修改主程序。
+    vector<Animal*> zoo;
+    zoo.push_back(new Dog());
+    zoo.push_back(new Cat());
+    for (auto animal : zoo) {
+        animal->sound(); // 动态绑定，根据实际类型调用方法
+    }
+
+    for (auto animal : zoo) {
+        delete animal; // 释放内存
+    }
+    delete a1;  //释放内存 调用 Dog 和 Animal 的析构函数
+    delete a2;
+
+    return 0;
+}
+
+
+```
+
+多态的核心在于动态绑定，而动态绑定依赖于基类指针或引用来实现虚函数调用。
+**不使用基类指针或引用时，仅能实现静态绑定，失去了多态的动态行为**。
+使用基类指针或引用，可以让代码更加通用、灵活和易于扩展，从而充分发挥面向对象编程的优势。
+
+|特性 |编译时多态 |运行时多态|
+|--|--|--|
+|绑定时机|编译时绑定，静态绑定|运行时绑定，动态绑定|
+|实现机制|函数重载，运算符重载，模板|继承，虚函数|
+|灵活性|静态，固定的行为|动态，可扩展的行为|
+|效率|高效，无其他开销|需要虚表查找，增加额外开销|
+|使用场景|类型已知且无需动态行为|需要根据对象的动态类型调整行为|
+
+
+***
+gdb查看虚函数表
+后续更新，目前还没用到gdb
+***
 
