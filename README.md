@@ -1,11 +1,9 @@
-# Cplusplus_study
-我的C++学习笔记及源代码
 @[TOC](C++学习笔记，持续更新)
 
 # 写在开头
 相关代码更新到GitHub仓库，[仓库地址](https://github.com/coolWtf/Cplusplus_study.git)
 https://github.com/coolWtf/Cplusplus_study.git
-通过秋招这几个月，认清了自己的目标，不再盲目，专注于技术的深耕，从现在开始记录学习，准备春招！加油。 从语法，数据结构，面向对象，标准库，高级特性这几个方向一步一步扎实基础。  
+通过秋招这两个月，认清了自己的目标，不再盲目的追求国企，专注于技术的深耕，从现在开始把之前项目中用到的技术点，以及基础知识重新梳理一遍， 从语法，数据结构，面向对象，标准库，高级特性这几个方向一步一步扎实基础。  
 11.13更新  这两天还是有一些企业面试，优先更新面试高频问题，后续再一步步更新基础。
 ## 基础语法与数据类型
 ### 1.一个C++文件是如何运行的
@@ -688,4 +686,322 @@ int main() {
 gdb查看虚函数表
 后续更新，目前还没用到gdb
 ***
+
+### 类相关
+类的成员变量，成员函数及其继承，多态相关问题在上面已经陈述了，这里主要讲下类的构造函数和析构函数，以及常见面试问题。
+#### 构造函数（常问）
+构造函数是类的一种特殊函数，在创建对象时自动调用，用于初始化对象的成员变量。
+##### 四种构造函数：
+
+- 默认构造函数：没有参数，没有显式定义构造函数时会提供默认的隐式构造函数。
+- 参数构造函数：接收参数，灵活初始化对象。
+- 拷贝构造函数： 使用已有对象初始化新对象，默认拷贝构造函数会按值复制成员变量。
+- 移动构造函数： 用于从右值（临时对象）中转移资源。减少不必要的资源拷贝，提高性能。
+
+```cpp
+//C++_study/OOP/class_study.cpp
+#include "iostream"
+using namespace std;
+class Person {
+public:
+    string name;
+    int age;
+
+    Person() {  // 默认构造函数
+        name = "Unknown";
+        age = 0;
+    }
+
+    Person(string n, int a) : name(n), age(a) {}  // 参数化构造函数
+
+    Person(const Person& other) {  // 拷贝构造函数
+        name = other.name;
+        age = other.age;
+    }
+    //移动构造函数，核心为将源对象的资源转移到目标对象，确保源对象的资源被释放。
+    //noexcept 是指不会抛出异常
+    Person(Person&& other) noexcept {
+        name = move(other.name);
+        age = other.age;
+        other.age = 0;
+    }
+
+};
+
+int main() {
+    Person p;  // 自动调用默认构造函数
+    cout << p.name << " is " << p.age << " years old." << endl;
+    Person p1("Alice", 25); //调用参数化构造函数
+    cout << p1.name << " is " << p1.age << " years old." << endl;
+    Person p2 = p1;  // 调用拷贝构造函数   等价于  Person p2(p1);
+    cout << p2.name << " is " << p2.age << " years old." << endl;
+    Person p3 = move(p2);   //调用移动构造函数   这里move是一个标准库函数，只是将p2转化为右值引用
+    cout << p2.name << " is " << p2.age << " years old." << endl;
+    cout << p3.name << " is " << p3.age << " years old." << endl;
+    Person p4 = 
+    return 0;
+}
+
+```
+***
+写到这里的时候不了解右值引用，在下面零碎小知识那一节详细描述了，可以直接去那一节看或者直接札沼右值引用这个光检测
+
+noexcept 是 C++ 中的一个关键字，用于指定一个函数是否可能抛出异常。它在函数声明和定义时使用，声明一个函数不会抛出任何异常。
+***
+
+##### 构造函数可以为虚函数吗（常问）
+不可以，
+- 虚函数依赖于虚表，虚表指针在构造函数中尚未完全建立：
+
+	- 当构造一个对象时，虚表指针（vptr） 的初始化是由基类构造函数完成的。在基类构造函数运行时，派生类的虚表还未被设置。
+	- 如果允许构造函数为虚函数，在基类构造函数中调用虚函数时，无法访问派生类的虚表，也就无法实现多态行为。
+- 逻辑上不符合：
+
+	- 构造函数的职责是创建对象的实例并初始化成员变量，而虚函数的职责是允许动态绑定以实现运行时多态。这两者的目的不同，逻辑上也不适合结合。
+- 构造函数本质上需要静态绑定：
+
+	- 在构造对象时，必须明确调用哪个类的构造函数（基类或派生类）。动态绑定的虚函数与这种明确调用的要求冲突。
+#### 析构函数
+在对象生命周期结束时自动调用，用于释放资源。
+- 语法：以 ~ 开头，没有返回值和参数。
+- 作用：
+	 - 清理动态分配的资源。
+	 -  防止资源泄漏。
+
+一般在类中没有手动定义析构函数时，C++ 编译器会自动生成一个**默认的析构函数**。默认析构函数是一个隐式定义的、无参数的、**非虚**的函数，它的主要作用是销毁对象并释放与对象直接关联的资源。
+因此在多种情况下虚构函数必须要手动编写：
+##### 哪些情况下必须手动编写虚构函数
+
+ 1. 管理动态分配的资源
+当类中包含指针成员变量并在运行时使用new操作符动态地分配内存时，必须在析构函数中使用delete操作符来释放内存。这样做可防止内存泄漏。
+
+```cpp
+// 管理动态分配的资源时 必须手动写析构函数
+//C++_study/OOP/class_study.cpp
+class String {
+private:
+    char* data; // 动态分配的内存
+public:
+    // 构造函数
+    String(const char* str) {
+        data = new char[strlen(str) + 1];
+        strcpy(data, str);
+    }
+
+    // 必须手动编写析构函数来释放内存
+    ~String() {
+        delete[] data; // 释放动态分配的内存
+        std::cout << "Destructor called, memory released.\n";
+    }
+};
+
+```
+为什么必须编写析构函数：
+
+- 动态分配的内存不会自动释放
+- 如果不手动编写析构函数，析构时不会释放 data 指向的内存，从而导致内存泄漏。
+
+2.	 拥有对外部资源的特殊责任
+当类负责管理外部资源（如文件句柄，数据库连接或者线程锁时）需要在析构函数中显式释放这些资源。
+
+```cpp
+//拥有对外部资源的特殊责任
+//C++_study/OOP/class_study.cpp
+class FileHandler {
+private:
+    std::ofstream file;
+public:
+    FileHandler(const char* filename) {
+        file.open(filename, std::ios::out);
+        if (!file.is_open()) {
+            throw std::runtime_error("Failed to open file.");
+        }
+    }
+
+    ~FileHandler() {
+        if (file.is_open()) {
+            file.close(); // 释放文件资源
+            std::cout << "File closed.\n";
+        }
+    }
+
+    void write(const std::string& text) {
+        file << text << std::endl;
+    }
+};
+```
+为什么必须编写析构函数：
+
+- 文件、网络连接等资源在程序运行结束时可能未被自动清理。
+- 如果不显式关闭资源，会导致资源泄漏。
+
+3.	继承的多态基类
+当一个类作为基类并且可能通过基类指针或引用使用时，必须为其定义虚析构函数。如果不这样做，派生类的析构函数可能不会被正确调用，导致资源泄漏。
+
+```cpp
+class Base {
+public:
+    virtual void func() {
+        std::cout << "Base::func called\n";
+    }
+    //作为基类并且有派生类继承 就需要显式写基类虚析构函数，否则派生类delete时会发生内存泄漏
+    virtual ~Base(){
+        cout<<"delete Base"<<endl;
+    }   
+
+};
+class Derived : public Base {
+	//这里没有显式重写基类析构函数，那么默认基类中的定义
+	//delete这个对象时的调用顺序为，先调用本身的析构函数，再根据虚函数表调用基类的析构函数
+    ~Derived(){
+        cout<<"delete Derived"<<endl;
+    }
+};
+
+int main() {
+    Base* b = new Derived();
+    delete b; // 通过基类指针删除对象
+    return 0;
+}
+```
+
+```bash
+# 销毁对象时的运行结果，首先调用派生类自身的析构函数。
+Base::func called
+delete Derived
+delete Base
+```
+为什么必须编写析构函数：
+
+- 如果基类的析构函数不是虚函数，delete b 只会调用基类的析构函数，而不会调用派生类的析构函数。
+- 这会导致派生类中动态分配的资源未被释放。
+
+
+但基类中的析构函数去掉virtual声明时，重新运行发现只调用了基类的析构函数，并没有调用派生类的析构函数。
+![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/453f289dab3340f987980a334e4782b3.png)
+
+
+4.	实现自定义的清理行为
+有些类需要在析构时执行一些特殊的操作，比如记录日志、更新状态或发送通知。
+
+```cpp
+class Logger {
+private:
+    std::string name;
+public:
+    Logger(const std::string& n) : name(n) {
+        std::cout << "Logger " << name << " created.\n";
+    }
+
+    ~Logger() {
+        std::cout << "Logger " << name << " destroyed.\n"; // 自定义清理行为
+    }
+};
+```
+为什么必须编写：
+- 自定义的清理逻辑（如记录日志或更新全局状态）需要在析构时执行。
+- 系统无法自动完成这些任务，需要通过手动编写析构函数实现。
+## 零碎小知识
+在写别的部分的时候，发现会涉及到其他内容，目前还不知道归类到哪一节，先写在这里
+### 左值右值，右值引用
+#### 左值
+是指可以标识一块内存的表达式，通常是可以取地址的。左值在表达式结束后仍然存在。
+
+- 可以取地址（使用&运算符）
+- 持久存在的对象
+
+```cpp
+int x = 10;  // x 是一个左值
+x = 20;      // 可以对 x 进行赋值
+int* p = &x; // 可以取地址
+
+10 = x;      // 错误！10 是一个右值，不能出现在赋值左侧
+```
+#### 右值
+是指不与内存地址关联的表达式，通常是临时的、短暂存在的。
+
+- 不能取地址（通常没有明确的内存地址）
+- 通常是临时值
+
+```cpp
+int y = x + 5; // (x + 5) 是右值，它的结果是一个临时值
+y = 42;        // 42 是右值，直接赋值给 y
+
+```
+#### 右值引用
+用 && 声明的引用类型，可以绑定到右值。它的主要用途是实现**移动语义**和**完美转发**。
+
+- 只能绑定到右值
+- **避免不必要的拷贝**
+- 窃取右值的资源
+
+```cpp
+int x = 10;
+int&& r = 20;   // r 是一个右值引用，绑定到右值 20
+r = 30;         // 修改 r 的值是合法的
+std::cout << r; // 输出 30
+
+
+int&& r = x; // 错误！右值引用不能绑定到左值
+
+int&& r = std::move(x); // 合法！std::move 将 x 转换为右值
+
+```
+
+### 虚函数和纯虚函数
+- virtual 修饰的普通虚函数
+	- 允许派生类重写，但不强制
+	- 如果派生类不重写，则会使用基类的定义
+
+- 纯虚函数
+	- 在基类中声明但不提供实现，派生类必须重写。
+	- 如果派生类没有重写，则派生类也不能实例化，也当作一个抽象类。
+	- 有个例外，基类的析构函数就算定义为纯虚函数，仍需要提供一个实现（尽管它是纯虚函数）。
+```cpp
+#include <iostream>
+using namespace std;
+class Base {
+public:
+    virtual void func() {
+        std::cout << "Base::func called\n";
+    }
+    //作为基类并且有派生类继承 就需要显式写基类虚析构函数，否则派生类delete时会发生内存泄漏
+    virtual ~Base(){
+        cout<<"delete Base"<<endl;
+    }   
+
+};
+
+class Derived : public Base {
+    // 没有重写 func
+    ~Derived(){
+        cout<<"delete Derived"<<endl;
+    }
+};
+
+class Base_xu{
+public:
+    virtual void func1() = 0;
+};
+
+class Derived1 : public Base_xu {
+    // 没有重写 func1  如在实例化Derived1对象则会报错
+};
+int main() {
+    Base* obj = new Derived();
+    obj->func(); // 调用 Base 的 func
+    delete obj;
+    return 0;
+}
+```
+
+```bash
+(base) root@560fb791bdad:/202222000568/C++_study/something_other# ./xu_and_chunxu                       
+Base::func called
+delete Derived
+delete Base
+```
+
+如上示例：虚函数，不要求强制重写，但是纯虚函数如果在派生类中不重写就不能被实例化，否则会编译错误，如下。
+![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/64260bc866654d10a63ed727d5254c5b.png)
 

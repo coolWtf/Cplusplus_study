@@ -90,6 +90,21 @@ class Derived : public Base {
     }
 };
 
+
+class Logger {
+private:
+    std::string name;
+public:
+    Logger(const std::string& n) : name(n) {
+        std::cout << "Logger " << name << " created.\n";
+    }
+
+    ~Logger() {
+        std::cout << "Logger " << name << " destroyed.\n"; // 自定义清理行为
+    }
+};
+
+
 int main() {
     Person p;  // 自动调用默认构造函数
     cout << p.name << " is " << p.age << " years old." << endl;
